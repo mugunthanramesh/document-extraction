@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Clone</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            height: 100vh;
+            background-color: #121212;
+            margin: 0;
+            padding: 0;
+        }
+        .chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            max-height: calc(100vh - 120px);
+        }
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            background: #1e1e1e;
+            border-top: 1px solid #333;
+            box-sizing: border-box;
+            border-radius: 25px;
+            width: 100%;
+            max-width: 800px;
+            align-self: center;
+            align-items: center;
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .file-preview {
+            display: none;
+            width: 100%;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 5px;
+            text-align: center;
+            background: #333;
+            padding: 5px;
+            border-radius: 10px;
+        }
+        .input-box {
+            display: flex;
+            width: 100%;
+            align-items: center;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            background: #333;
+            color: white;
+            font-size: 16px;
+            padding-left: 15px;
+        }
+        button {
+            padding: 12px 15px;
+            background: #555;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
+            border-radius: 25px;
+            font-size: 16px;
+        }
+        .attach-icon {
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 20px;
+            color: white;
+        }
+        .message {
+            max-width: 80%;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 20px;
+        }
+        .user {
+            background: #777;
+            align-self: flex-end;
+            color: white;
+        }
+        .bot {
+            background: #2c2c2c;
+            align-self: flex-start;
+            color: white;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="input-container">
+        <div id="filePreview" class="file-preview"></div>
+        <div class="input-box">
+            <label for="fileInput" class="attach-icon">📎</label>
+            <input type="file" id="fileInput" onchange="showFilePreview()">
+            <input type="text" id="userInput" placeholder="Send a message..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">&#10148;</button>
+        </div>
+    </div>
+    
+    <script>
+    function sendMessage() {
+        let userInput = document.getElementById("userInput").value;
+        let fileInput = document.getElementById("fileInput");
+        let chatBox = document.getElementById("chatBox");
+        
+        if (!userInput.trim() && fileInput.files.length === 0) return;
+
+
+        
+        let formData = new FormData();
+        formData.append("message", userInput);
+        if (fileInput.files.length > 0) {
+            formData.append("file", fileInput.files[0]);
+            removeFile();
+        }
+
+        fetch("/sendMessage/", {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken": getCSRFToken(),
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            appendMessage(userInput, "user");
+        document.getElementById("userInput").value = "";
+
+        if (data.file_url) {
+            appendMessage(`<div class="file-message">${data.file_name} 
+            <a href="${data.file_url}" download="${data.file_name}" style="color: white;">📥</a></div>`, "user", true);
+        }
+            appendMessage(data.response, "bot");
+            fileInput.value = "";
+        });
+    }
+
+    function getCSRFToken() {
+        return document.cookie.split("; ")
+            .find(row => row.startsWith("csrftoken="))
+            ?.split("=")[1];
+    }
+        
+        function appendMessage(message, sender, isHTML = false) {
+            let chatBox = document.getElementById("chatBox");
+            let messageElement = document.createElement("div");
+            messageElement.classList.add("message", sender);
+            if (isHTML) {
+                messageElement.innerHTML = message;
+            } else {
+                messageElement.innerHTML = marked.parse(message);
+            }
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        
+        function getBotResponse(input) {
+            return "I'm a ChatGPT clone! How can I assist you?";
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+        
+        function showFilePreview() {
+            let fileInput = document.getElementById("fileInput");
+            let filePreview = document.getElementById("filePreview");
+            
+            if (fileInput.files.length > 0) {
+                filePreview.textContent = fileInput.files[0].name;
+                filePreview.style.display = "block";
+            } else {
+                filePreview.style.display = "none";
+            }
+        }
+
+        function removeFile() {
+            document.getElementById("fileInput").value = "";
+            document.getElementById("filePreview").style.display = "none";
+        }
+    </script>
+</body>
+</html>
