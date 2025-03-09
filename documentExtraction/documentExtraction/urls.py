@@ -19,7 +19,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.chat),
+    path('', views.chat_screen),
     path('chat/', views.chat_screen),
-    path('sendMessage/', views.chat),
+    path('sendMessage/', views.sendMessage),
 ]

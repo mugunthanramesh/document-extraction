@@ -10,7 +10,7 @@ import base64
 def chat_screen(request):
     return render(request, "chat.html")
 
-def chat(request):
+def sendMessage(request):
     if request.method == "POST":
         message = request.POST.get("message", "")
         uploaded_file = request.FILES.get("file")
